@@ -1,10 +1,25 @@
 import pandas as _pd
 from numpy import float64 as _float64
-from defs import Period as _Period
 from copy import copy as _copy
 
+import os as _os
 from time import time as _time
 from datetime import datetime
+
+
+# This class is provided only to add docstring to dict
+class __Period (dict):
+    """Maps period marks adopted in trading platforms to Offset aliases using
+    by pandas"""
+    def __init__(self):
+        dict.__init__(self, {"1m": "T", "5m": "5T", "30m": "30T",
+                             "1h": "H", "5h": "5H", "8h": "8H", "12h": "12H",
+                             "1d": "D", "1w": "1W"})
+
+        #dict.__init__(self, {"1m": 60, "5m": 5*60, "30m": 30*60, "1h": 1*3600})
+
+
+Period = __Period()
 
 
 def assert_dataframe_is_valid(func):
@@ -26,7 +41,7 @@ def assert_dataframe_is_valid(func):
 
 
 #@assert_dataframe_is_valid
-def convert_to_candlesticks(df: _pd.DataFrame, period: int) -> _pd.DataFrame:
+def convert_to_candlesticks(df: _pd.DataFrame, period: str) -> _pd.DataFrame:
     """The function splits given dataframe into given periods and calculates
     candlesticks (open, high, low, close) within
 
@@ -112,9 +127,6 @@ def convert_to_candlesticks(df: _pd.DataFrame, period: int) -> _pd.DataFrame:
     return ohlc
 
 
-
-
-
 @assert_dataframe_is_valid
 def add_ema(df: _pd.DataFrame, length: int = 14) -> None:
     """Add new column "EMA<length>" to given DataFrame with Exponential moving
@@ -151,4 +163,29 @@ def add_ema(df: _pd.DataFrame, length: int = 14) -> None:
     for i, close_price in enumerate(df.Close):
         value += (close_price - value) * alpha
         df.loc[i, col_idx] = value
+
+
+def process_csv_file(filename: str, period: str, length: int):
+    assert _os.path.isfile(filename) and \
+           _os.path.splitext(filename)[1] == ".csv", \
+        f"{process_csv_file.__name__}(): 'filename' must be *.csv file, " \
+        f"{filename} given"
+    assert isinstance(period, str) and period in Period.keys(), \
+        f"{process_csv_file.__name__}(): 'period' must be any of " \
+        f"{list(Period.keys())}, \"{period}\" given"
+
+    # Create pandas DataFrame from downloaded csv file. Use timestamp as index
+    def date_parser(string_list):
+        return [datetime.fromisoformat(s).timestamp() for s in string_list]
+
+    df = _pd.read_csv(filename, index_col="TS", parse_dates=True)
+    # df = _pd.read_csv(args.csv, index_col="TS", parse_dates=False)
+    # df.index = date_parser(df.index)
+
+    # Convert prices into candlesticks with given period
+    ohlc = convert_to_candlesticks(df, Period[period])
+
+    # Add 'EMA<args.length>' column to candlesticks
+    # print(2)
+    # _add_ema(ohlc, args.length)
 

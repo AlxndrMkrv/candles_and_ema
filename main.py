@@ -11,7 +11,7 @@ from urllib import request as _url_request
 from enum import Enum as _Enum
 
 from defs import Period as _Period
-from ema import convert_to_candlesticks as _convert_to_candlesticks, \
+from pandas_based import convert_to_candlesticks as _convert_to_candlesticks, \
     add_ema as _add_ema
 
 import time
@@ -49,10 +49,6 @@ def download_csv_file(url: str = data_file_url) -> str:
     return f"{data_dir}/{csv_filename}"
 
 
-def parse_csv_file(filename: str) -> _pd.DataFrame:
-    """Parse csv file to pandas DataFrame"""
-
-
 if __name__ == "__main__":
     parser = _ArgumentParser("Test assignment for AmaCryTeam vacancy")
     parser.add_argument("--period", choices=_Period.keys(), default="5m",
@@ -62,6 +58,9 @@ if __name__ == "__main__":
     parser.add_argument("--csv", type=str, nargs='?',
                         help="csv file to aggregate. If no file given it will "
                              "be downloaded automatically")
+    parser.add_argument("--implementation", type=str,
+                        choices=["numpy", "pandas"], default="pandas",
+                        help="choose implementation")
     parser.add_argument("--test", action="store_true", help="run unit tests")
     args = parser.parse_args()
 
@@ -87,19 +86,16 @@ if __name__ == "__main__":
         print(f"Error: CSV file must be provided, \"{args.csv}\" is not a file")
         exit(1)
 
-    # Create pandas DataFrame from downloaded csv file. Use timestamp as index
-    def date_parser(string_list):
-        return [datetime.fromisoformat(s).timestamp() for s in string_list]
+    # Depending on selected implementation import processing function and call
+    # it with provided filename, candlesticks period and EMA length
+    if args.implementation == "pandas":
+        from pandas_based import process_csv_file
+    elif args.implementation == "numpy":
+        from numpy_based import process_csv_file
+    else:
+        print("Error! Invalid implementation provided")
+        exit(1)
 
-    #df = _pd.read_csv(args.csv, index_col="TS", parse_dates=True)
-    df = _pd.read_csv(args.csv, index_col="TS", parse_dates=False)
-    df.index = date_parser(df.index)
+    process_csv_file(args.csv, args.period, args.length)
 
-    # Convert prices into candlesticks with given period
-    print()
-    ohlc = _convert_to_candlesticks(df, _Period[args.period])
-
-    # Add 'EMA<args.length>' column to candlesticks
-    #print(2)
-    #_add_ema(ohlc, args.length)
 
