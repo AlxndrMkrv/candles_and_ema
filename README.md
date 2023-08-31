@@ -1,10 +1,30 @@
-# candles_for_amacryteam
-Test assignment for a vacancy Middle-Level Python Developer
+## candles_and_ema
+
+Test assignment to implement candlesticks and EMA calculation for a given csv 
+file. 
+
+To run the project just do `python3 main.py`: application will automaticaly 
+download csv file, process it and plot the results.
+
+Following parameters will make some customization:
+```bash
+--period <value> # set candlesticks duration
+--length <value> # set EMA filtering depth
+--csv <filepath> # set csv file to process
+```
 
 
-Notes
------
+### Dependencies
 
-Pandas DataFrames looks veeeeeery slow. Given "df" has single row of 100k np.float64 elements, `timeit("max(df)", number=10000)` takes 0.014 seconds to run but `timeit("df.max()", number=10000)` takes 3 (sic!). `timeit("len(df)", number=10000)` takes 0.01 second but `timeit("df.size", number=10000)` somehow takes 0.12...
+- numpy
+- pandas
+- mplfinance
+- matplotlib
+
+
+## Plots
+
+### Numpy implementation:
+![numpy implementation](./prices.png)
 
 
