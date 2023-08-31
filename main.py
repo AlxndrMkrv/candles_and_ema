@@ -12,7 +12,7 @@ import mplfinance as _mpf
 data_file_url = "https://perp-analysis.s3.amazonaws.com/interview/prices.csv.zip"
 
 # directory to download and extract files
-data_dir = f"{_gettempdir()}/candles_for_amacryteam"
+data_dir = f"{_gettempdir()}/candles_and_ema"
 
 
 def __csv_filename(url: str = data_file_url) -> str:
@@ -76,6 +76,7 @@ if __name__ == "__main__":
                              "data directory in system temp")
     parser.add_argument("--test", action="store_true", help="run unit tests")
     args = parser.parse_args()
+    print(args)
 
     # choose numpy implementation if no argument set
     if not args.numpy and not args.pandas:
@@ -134,8 +135,11 @@ if __name__ == "__main__":
     ema_line = _mpf.make_addplot(df[[_defs.EMA]], type="line")
 
     # plot candlesticks and with EMA line
-    _mpf.plot(df[[_defs.OPEN, _defs.HIGH, _defs.LOW, _defs.CLOSE]],
-              type="candlestick", style=args.style, addplot=ema_line,
-              title=f"{_os.path.basename(args.csv)}: "
-                    f"{args.period} OHLC and EMA{args.length}",
-              savefig=args.savefig)
+    config = dict(type="candlestick", style=args.style, addplot=ema_line,
+                  title=f"{_os.path.basename(args.csv)}: "
+                        f"{args.period} OHLC and EMA{args.length}",
+                  tight_layout=True)
+    if args.savefig is not None:
+        config["savefig"] = args.savefig
+
+    _mpf.plot(df[[_defs.OPEN, _defs.HIGH, _defs.LOW, _defs.CLOSE]], **config)
