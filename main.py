@@ -1,27 +1,31 @@
+"""Main module to run the project"""
+
 import os
+from sys import exit as sys_exit
 from io import BytesIO
 from zipfile import ZipFile
 from argparse import ArgumentParser
 from tempfile import gettempdir
 from urllib import request as url_request
-import defs
 import mplfinance as mpf
 from pytest import main as pytest_main
+import defs
+from numpy_implementation import process_csv_file
 
 
 # url given in test assignment
-data_file_url = "https://perp-analysis.s3.amazonaws.com/interview/prices.csv.zip"
+DATA_FILE_URL = "https://perp-analysis.s3.amazonaws.com/interview/prices.csv.zip"
 
 # directory to download and extract files
 data_dir = f"{gettempdir()}/candles_and_ema"
 
 
-def __csv_filename(url: str = data_file_url) -> str:
+def __csv_filename(url: str = DATA_FILE_URL) -> str:
     """Extract filename from given url to *.csv.zip"""
     return os.path.splitext(os.path.basename(url))[0]
 
 
-def download_csv_file(url: str = data_file_url) -> str:
+def download_csv_file(url: str = DATA_FILE_URL) -> str:
     """
     Download and extract csv file
 
@@ -44,21 +48,18 @@ def download_csv_file(url: str = data_file_url) -> str:
 
     # download csv file to data directory if not present
     if csv_filename not in os.listdir(data_dir):
-        content = url_request.urlopen(url).read()
-        # wrap content (zipped data) with BytesIO to imitate 'real' file
-        zip_file = ZipFile(BytesIO(content))
-        zip_file.extractall(data_dir)
+        with url_request.urlopen(url) as response:
+            content = response.read()
+            # wrap content (zipped data) with BytesIO to imitate 'real' file
+            with BytesIO(content) as buffer:
+                with ZipFile(buffer) as zip_file:
+                    zip_file.extractall(data_dir)
 
     return f"{data_dir}/{csv_filename}"
 
 
 if __name__ == "__main__":
     parser = ArgumentParser("Test assignment for AmaCryTeam vacancy")
-    impl_group = parser.add_mutually_exclusive_group()
-    impl_group.add_argument("--numpy", action="store_true",
-                            help="choose numpy implementation (default)")
-    impl_group.add_argument("--pandas", action="store_true",
-                            help="choose pandas implementation")
     parser.add_argument("--period", choices=defs.Period.marks,
                         default="5m", help="set candlesticks period "
                                            "(default: 5m)")
@@ -80,7 +81,7 @@ if __name__ == "__main__":
 
     # run pytest if requested
     if args.test:
-        exit(pytest_main(["-v", "test.py"]))
+        sys_exit(pytest_main(["-v", "test.py"]))
 
     # choose numpy implementation if no argument set
     if not args.numpy and not args.pandas:
@@ -91,45 +92,35 @@ if __name__ == "__main__":
     # provided
     if args.csv is None:
         # skip if file already in data dir
-        path_to_downloaded_csv = f"{data_dir}/{__csv_filename(data_file_url)}"
+        path_to_downloaded_csv = f"{data_dir}/{__csv_filename(DATA_FILE_URL)}"
         if os.path.isfile(path_to_downloaded_csv):
-            print(f"CSV file found in data directory. Processing...")
+            print("CSV file found in data directory. Processing...")
             args.csv = path_to_downloaded_csv
 
         else:
             # try to download and extract csv file
             try:
                 print(f"Trying to download data file from "
-                      f"\"{data_file_url}\". Please wait...")
+                      f"\"{DATA_FILE_URL}\". Please wait...")
                 args.csv = download_csv_file()
-            except:
-                print(f"Error: failed to download data file or unzip it")
-                exit(1)
+            except:  # pylint: disable=W0702
+                print("Error: failed to download data file or unzip it")
+                sys_exit(1)
 
             # check if downloaded file exist
             if os.path.isfile(args.csv):
                 print(f"Success! CSV file available at \"{args.csv}\"")
             else:
                 print("Something went wrong...")
-                exit(1)
+                sys_exit(1)
     elif not os.path.isfile(args.csv):
         print(f"Error: CSV file must be provided, "
               f"\"{args.csv}\" is not a file")
-        exit(1)
+        sys_exit(1)
 
     # set default path to plot figure if requested
     if args.savefig == '':
         args.savefig = f"{os.path.splitext(args.csv)[0]}.png"
-
-    # depending on selected implementation, import processing function and call
-    # it with provided filename, candlesticks period and EMA length
-    if args.pandas and not args.numpy:
-        from pandas_implementation import process_csv_file
-    elif args.numpy and not args.pandas:
-        from numpy_implementation import process_csv_file
-    else:
-        print("Error! Invalid implementation provided")
-        exit(1)
 
     # process csv file to get DataFrame with OHLC and EMA data indexed by
     # given periods timestamps
@@ -139,10 +130,10 @@ if __name__ == "__main__":
     ema_line = mpf.make_addplot(df[[defs.EMA]], type="line")
 
     # plot candlesticks and with EMA line
-    config = dict(type="candlestick", style=args.style, addplot=ema_line,
-                  title=f"{os.path.basename(args.csv)}: "
-                        f"{args.period} OHLC and EMA{args.length}",
-                  tight_layout=True)
+    config = {"type": "candlestick", "style": args.style, "addplot": ema_line,
+              "title": f"{os.path.basename(args.csv)}: "
+                       f"{args.period} OHLC and EMA{args.length}",
+              "tight_layout": True}
     if args.savefig is not None:
         config["savefig"] = args.savefig
 

@@ -1,11 +1,13 @@
+"""Unit-test module"""
+
+from typing import Iterable, Tuple
+from random import randint
 import pytest
 import numpy as np
-from typing import Iterable, Tuple
 
 from numpy_implementation import calculate_ema as ema_numpy, \
     convert_to_candlesticks as ohlc_numpy, Period as Period_numpy
 import defs
-from random import randint
 
 
 def get_ohlc_prices_and_reference(period: int = 4,
@@ -39,7 +41,7 @@ def get_ohlc_prices_and_reference(period: int = 4,
     opens, highs, lows, closes = [], [], [], []
 
     for n in range(periods_number):
-        # timeline for the n'th period aligned to the end of the period
+        # timeline for the nth period aligned to the end of the period
         period_seconds = [n*period + i + 1 for i in range(period)]
         # use last periods second as timestamp for current candle
         ohlc_timestamps.append(period_seconds[-1])
@@ -91,12 +93,12 @@ def get_reference_ema(n: int, amplitude: int = 1000000,
 
     def ema_generator(iterable: Iterable):
         """Generator yielding EMA<n> value for given iterable."""
-        alpha = 2 / (n + 1)
+        smooth = 2 / (n + 1)
         iterator = iter(iterable)
         value = next(iterator)
         yield value
         for v in iterator:
-            value += alpha * (v - value)
+            value += smooth * (v - value)
             yield value
 
     # create square pulse
@@ -135,4 +137,3 @@ def test_numpy_candlesticks(period: str):
     # assert equality of reference and test tables for listed columns
     for col in (defs.TS, defs.OPEN, defs.HIGH, defs.LOW, defs.CLOSE):
         assert np.array_equal(test_table[col], ref_table[col])
-

@@ -3,13 +3,13 @@ Numpy-based implementation of candlesticks and EMA calculation over given
 timestamp-price CSV-file
 """
 
-import defs as _defs
-import numpy as _np
-from pandas import DataFrame as _DataFrame
-from numpy.lib.recfunctions import merge_arrays as _merge_arrays
 import os as _os
 from datetime import datetime as _datetime
 from copy import copy as _copy
+import numpy as _np
+from pandas import DataFrame as _DataFrame
+from numpy.lib.recfunctions import merge_arrays as _merge_arrays
+import defs as _defs
 
 
 class __Period (_defs.Period):
@@ -17,8 +17,8 @@ class __Period (_defs.Period):
     __doc__ += """ (seconds)"""
 
     def __init__(self):
-        def calc_value(v: str):
-            value, time_mark = int(v[:-1]), v[-1]
+        def calc_value(mark: str):
+            value, time_mark = int(mark[:-1]), mark[-1]
             return value * {'m': 60, 'h': 60*60,
                             'd': 24*60*60, 'w': 7*24*60*60}[time_mark]
 
@@ -168,8 +168,8 @@ def calculate_ema(tbl: _np.ndarray, length: int = 14) -> _np.ndarray:
     Args:
         tbl (numpy.ndarray): structured array containing timestamps and close
                              prices
-        length (int): integer constant to evaluate first-order IIR alpha value
-                      with equation "2/(length + 1)"
+        length (int): integer constant to evaluate smooth coefficient with
+                      equation "2/(length + 1)"
 
     Returns:
         one-dimension numpy ndarray with calculated EMA values
@@ -187,15 +187,15 @@ def calculate_ema(tbl: _np.ndarray, length: int = 14) -> _np.ndarray:
     # initialize EMA ndarray
     ema = _np.zeros(tbl.size, dtype=[(_defs.EMA, _np.float64)])
 
-    # Convert given 'length' to IIR alpha value
-    alpha = 2 / (length + 1)
+    # Convert given 'length' to smooth coefficient
+    smooth = 2 / (length + 1)
 
     # Set EMA start value to the first close price to avoid transition process
     value = _copy(tbl[_defs.CLOSE][0])
 
     # Fill the column with EMA values
     for i, close_price in enumerate(tbl[_defs.CLOSE]):
-        value += (close_price - value) * alpha  # first-order IIR equation
+        value += (close_price - value) * smooth
         ema[i] = value
 
     return ema
