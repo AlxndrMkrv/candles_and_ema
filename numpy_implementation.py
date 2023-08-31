@@ -1,5 +1,5 @@
 """
-Numpy-based implemetation of candlesticks and EMA calculation over given
+Numpy-based implementation of candlesticks and EMA calculation over given
 timestamp-price CSV-file
 """
 

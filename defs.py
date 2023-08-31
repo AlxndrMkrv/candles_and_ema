@@ -1,3 +1,5 @@
+"""Implementation independent definitions"""
+
 
 class Period (dict):
     """
@@ -13,7 +15,7 @@ class Period (dict):
         raise NotImplementedError
 
 
-# Define column names
+# Column names for tables
 TS = "Timestamp"
 PRICE = "Price"
 OPEN = "Open"

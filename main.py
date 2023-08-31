@@ -1,23 +1,24 @@
-import os as _os
-from io import BytesIO as _BytesIO
-from zipfile import ZipFile as _ZipFile
-from argparse import ArgumentParser as _ArgumentParser
-from tempfile import gettempdir as _gettempdir
-from urllib import request as _url_request
-import defs as _defs
-import mplfinance as _mpf
+import os
+from io import BytesIO
+from zipfile import ZipFile
+from argparse import ArgumentParser
+from tempfile import gettempdir
+from urllib import request as url_request
+import defs
+import mplfinance as mpf
+from pytest import main as pytest_main
 
 
 # url given in test assignment
 data_file_url = "https://perp-analysis.s3.amazonaws.com/interview/prices.csv.zip"
 
 # directory to download and extract files
-data_dir = f"{_gettempdir()}/candles_and_ema"
+data_dir = f"{gettempdir()}/candles_and_ema"
 
 
 def __csv_filename(url: str = data_file_url) -> str:
     """Extract filename from given url to *.csv.zip"""
-    return _os.path.splitext(_os.path.basename(url))[0]
+    return os.path.splitext(os.path.basename(url))[0]
 
 
 def download_csv_file(url: str = data_file_url) -> str:
@@ -33,7 +34,7 @@ def download_csv_file(url: str = data_file_url) -> str:
 
     # create data directory in system temp dir if possible
     try:
-        _os.makedirs(data_dir, exist_ok=True)
+        os.makedirs(data_dir, exist_ok=True)
     except FileExistsError:
         # makedirs will fail if non-directory with given path exists
         print(f"Error! Failed to create \"{data_dir}\"")
@@ -42,23 +43,23 @@ def download_csv_file(url: str = data_file_url) -> str:
     csv_filename = __csv_filename(url)
 
     # download csv file to data directory if not present
-    if csv_filename not in _os.listdir(data_dir):
-        content = _url_request.urlopen(url).read()
+    if csv_filename not in os.listdir(data_dir):
+        content = url_request.urlopen(url).read()
         # wrap content (zipped data) with BytesIO to imitate 'real' file
-        zip_file = _ZipFile(_BytesIO(content))
+        zip_file = ZipFile(BytesIO(content))
         zip_file.extractall(data_dir)
 
     return f"{data_dir}/{csv_filename}"
 
 
 if __name__ == "__main__":
-    parser = _ArgumentParser("Test assignment for AmaCryTeam vacancy")
+    parser = ArgumentParser("Test assignment for AmaCryTeam vacancy")
     impl_group = parser.add_mutually_exclusive_group()
     impl_group.add_argument("--numpy", action="store_true",
                             help="choose numpy implementation (default)")
     impl_group.add_argument("--pandas", action="store_true",
                             help="choose pandas implementation")
-    parser.add_argument("--period", choices=_defs.Period.marks,
+    parser.add_argument("--period", choices=defs.Period.marks,
                         default="5m", help="set candlesticks period "
                                            "(default: 5m)")
     parser.add_argument("--length", metavar="value", type=int, default=14,
@@ -66,7 +67,7 @@ if __name__ == "__main__":
     parser.add_argument("--csv", metavar="filename", type=str,
                         help="csv file to aggregate. If no file given, the "
                              "default one will be downloaded automatically")
-    parser.add_argument("--style", choices=_mpf.available_styles(),
+    parser.add_argument("--style", choices=mpf.available_styles(),
                         default="binance", help="choose plot style "
                                                 "(default: binance)")
     parser.add_argument("--savefig", metavar="filename", type=str,
@@ -76,7 +77,10 @@ if __name__ == "__main__":
                              "data directory in system temp")
     parser.add_argument("--test", action="store_true", help="run unit tests")
     args = parser.parse_args()
-    print(args)
+
+    # run pytest if requested
+    if args.test:
+        exit(pytest_main(["-v", "test.py"]))
 
     # choose numpy implementation if no argument set
     if not args.numpy and not args.pandas:
@@ -88,7 +92,7 @@ if __name__ == "__main__":
     if args.csv is None:
         # skip if file already in data dir
         path_to_downloaded_csv = f"{data_dir}/{__csv_filename(data_file_url)}"
-        if _os.path.isfile(path_to_downloaded_csv):
+        if os.path.isfile(path_to_downloaded_csv):
             print(f"CSV file found in data directory. Processing...")
             args.csv = path_to_downloaded_csv
 
@@ -103,19 +107,19 @@ if __name__ == "__main__":
                 exit(1)
 
             # check if downloaded file exist
-            if _os.path.isfile(args.csv):
+            if os.path.isfile(args.csv):
                 print(f"Success! CSV file available at \"{args.csv}\"")
             else:
                 print("Something went wrong...")
                 exit(1)
-    elif not _os.path.isfile(args.csv):
+    elif not os.path.isfile(args.csv):
         print(f"Error: CSV file must be provided, "
               f"\"{args.csv}\" is not a file")
         exit(1)
 
     # set default path to plot figure if requested
     if args.savefig == '':
-        args.savefig = f"{_os.path.splitext(args.csv)[0]}.png"
+        args.savefig = f"{os.path.splitext(args.csv)[0]}.png"
 
     # depending on selected implementation, import processing function and call
     # it with provided filename, candlesticks period and EMA length
@@ -132,14 +136,14 @@ if __name__ == "__main__":
     df = process_csv_file(args.csv, args.period, args.length)
 
     # prepare EMA line plot
-    ema_line = _mpf.make_addplot(df[[_defs.EMA]], type="line")
+    ema_line = mpf.make_addplot(df[[defs.EMA]], type="line")
 
     # plot candlesticks and with EMA line
     config = dict(type="candlestick", style=args.style, addplot=ema_line,
-                  title=f"{_os.path.basename(args.csv)}: "
+                  title=f"{os.path.basename(args.csv)}: "
                         f"{args.period} OHLC and EMA{args.length}",
                   tight_layout=True)
     if args.savefig is not None:
         config["savefig"] = args.savefig
 
-    _mpf.plot(df[[_defs.OPEN, _defs.HIGH, _defs.LOW, _defs.CLOSE]], **config)
+    mpf.plot(df[[defs.OPEN, defs.HIGH, defs.LOW, defs.CLOSE]], **config)
