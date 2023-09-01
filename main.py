@@ -83,10 +83,6 @@ if __name__ == "__main__":
     if args.test:
         sys_exit(pytest_main(["-v", "test.py"]))
 
-    # choose numpy implementation if no argument set
-    if not args.numpy and not args.pandas:
-        args.numpy = True
-
     # use csv file provided as argument or download the file mentioned in
     # test assignment. Show error if download/unzip failed or invalid file
     # provided
