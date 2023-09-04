@@ -201,6 +201,7 @@ def calculate_ema(tbl: _np.ndarray, length: int = 14) -> _np.ndarray:
     return ema
 
 
+@_defs.csv_file_is_valid
 def process_csv_file(filename: str, period: str, length: int) -> _DataFrame:
     """
     Read given csv file into numpy structured array, convert prices to
@@ -211,21 +212,11 @@ def process_csv_file(filename: str, period: str, length: int) -> _DataFrame:
     Args:
         filename (str): path to csv-file containing timestamp-price pairs
         period (str): candlesticks duration, see :Period.marks: in defs.py
-        length:
+        length (int): number of observations to calculate EMA
 
     Returns:
         pandas DataFrame with timestamps, candlestick prices and calculated EMA
     """
-    # assert that given filename exist and has ".csv" extension
-    assert _os.path.isfile(filename) and \
-           _os.path.splitext(filename)[1] == ".csv", \
-        f"{process_csv_file.__name__}(): 'filename' must be *.csv file, " \
-        f"{filename} given"
-
-    # assert that given period is one of valid marks
-    assert period in _defs.Period.marks, \
-        f"{process_csv_file.__name__}(): 'period' must be any of " \
-        f"{list(_defs.Period.marks)}, \"{period}\" given"
 
     # function converts string datetime to timestamp
     def datetime2timestamp(s: str) -> float:

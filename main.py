@@ -10,7 +10,6 @@ from urllib import request as url_request
 import mplfinance as mpf
 from pytest import main as pytest_main
 import defs
-from numpy_implementation import process_csv_file
 
 
 # url given in test assignment
@@ -59,18 +58,31 @@ def download_csv_file(url: str = DATA_FILE_URL) -> str:
 
 
 if __name__ == "__main__":
-    parser = ArgumentParser("Test assignment for AmaCryTeam vacancy")
+    parser = ArgumentParser("Test assignment to implement candlestick chart "
+                            "and EMA calculation for given CSV file")
+    # set candlesticks period: see defs.Period for available variants
     parser.add_argument("--period", choices=defs.Period.marks,
                         default="5m", help="set candlesticks period "
                                            "(default: 5m)")
+    # set EMA length
     parser.add_argument("--length", metavar="value", type=int, default=14,
                         help="set EMA length (default: 14)")
+    # set csv file to process
     parser.add_argument("--csv", metavar="filename", type=str,
                         help="csv file to aggregate. If no file given, the "
                              "default one will be downloaded automatically")
+    # set implementation: pandas build-in methods or numpy-based raw
+    # calculations
+    impl_group = parser.add_mutually_exclusive_group()
+    impl_group.add_argument("--numpy", action="store_true",
+                            help="choose numpy implementation (default)")
+    impl_group.add_argument("--pandas", action="store_true",
+                            help="choose pandas implementation")
+    # set plot style
     parser.add_argument("--style", choices=mpf.available_styles(),
                         default="binance", help="choose plot style "
                                                 "(default: binance)")
+    # path to save plot
     parser.add_argument("--savefig", metavar="filename", type=str,
                         nargs='?', const='',
                         help="set path to plot chart output filename. "
@@ -78,6 +90,10 @@ if __name__ == "__main__":
                              "data directory in system temp")
     parser.add_argument("--test", action="store_true", help="run unit tests")
     args = parser.parse_args()
+
+    # choose numpy implementation if no argument set
+    if not args.numpy and not args.pandas:
+        args.numpy = True
 
     # run pytest if requested
     if args.test:
@@ -117,6 +133,16 @@ if __name__ == "__main__":
     # set default path to plot figure if requested
     if args.savefig == '':
         args.savefig = f"{os.path.splitext(args.csv)[0]}.png"
+
+    # depending on selected implementation, import processing function and call
+    # it with provided filename, candlesticks period and EMA length
+    if args.pandas and not args.numpy:
+        from pandas_implementation import process_csv_file
+    elif args.numpy and not args.pandas:
+        from numpy_implementation import process_csv_file
+    else:
+        print("Error! Invalid implementation provided")
+        exit(1)
 
     # process csv file to get DataFrame with OHLC and EMA data indexed by
     # given periods timestamps
