@@ -17,12 +17,19 @@ class __Period (_defs.Period):
     __doc__ += """ (seconds)"""
 
     def __init__(self):
-        def calc_value(mark: str):
-            value, time_mark = int(mark[:-1]), mark[-1]
-            return value * {'m': 60, 'h': 60*60,
-                            'd': 24*60*60, 'w': 7*24*60*60}[time_mark]
+        dict.__init__(self, {k: self.__calc_value(k) for k in _defs.Period.marks})
 
-        dict.__init__(self, {k: calc_value(k) for k in _defs.Period.marks})
+    @staticmethod
+    def __calc_value(mark: str) -> int:
+        value, time_mark = int(mark[:-1]), mark[-1]
+        return value * {'m': 60, 'h': 60 * 60,
+                        'd': 24 * 60 * 60, 'w': 7 * 24 * 60 * 60}[time_mark]
+
+    def __getitem__(self, item: str):
+        if item in self:
+            return dict.__getitem__(self, item)
+        else:
+            return self.__calc_value(item)
 
 
 Period = __Period()
